@@ -42,17 +42,7 @@ def main(cfg_items, flags):
         sequence.append(list(SeqIO.parse(data_loc+filenm,'fastq')))
     sequence=[item for sublist in sequence for item in sublist] 
     
-    smaller_data_set1=random.sample(sequence,100000)
-    smaller_data_set2=random.sample(sequence,100000)
-   # for record in sequence[0:100]:
-   #     print("ID = %s, length %i, with %i features" % (record.id, len(record.seq), len(record.features)))
-    output_handle=open(data_loc+'selection3.fastq','w')
-    SeqIO.write(smaller_data_set1, output_handle, 'fastq')
-    output_handle.close()
 
-    output_handle=open(data_loc+'selection4.fastq','w')
-    SeqIO.write(smaller_data_set2, output_handle, 'fastq')
-    output_handle.close()
 
     return 0
 
