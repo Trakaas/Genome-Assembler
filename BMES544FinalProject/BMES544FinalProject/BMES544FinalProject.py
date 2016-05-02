@@ -5,6 +5,7 @@ import os
 import textwrap
 import yaml
 import sys
+from Bio.Alphabet.IUPAC import IUPACAmbiguousDNA
 
 def config():
     with open("ASM_CONFIG.yml", 'r') as ymlfile:
@@ -34,10 +35,19 @@ def main(cfg_items, flags):
                         '\n\tInvalid filenames saved for later.')
 
     #Parse files into lists of sequence records
-    print('Parsing '+data_loc+valid_list[0])
-    #sequence=list(SeqIO.parse(data_loc+valid_list[0],'fastq'))
-    
-    
+    sequence=[]
+    for filenm in valid_list:
+        print('Parsing '+data_loc+filenm)
+        sequence.append(list(SeqIO.parse(data_loc+filenm,'fastq')))
+        print(len(sequence))
+    sequence=[item for sublist in sequence for item in sublist] 
+    print(len(sequence))
+# commit new
+   # for record in sequence[0:100]:
+   #     print("ID = %s, length %i, with %i features" % (record.id, len(record.seq), len(record.features)))
+   # output_handle=open('outfile.txt','w')
+   # SeqIO.write(sequence, output_handle, 'fasta')
+   # output_handle.close()
 
     return 0
 
