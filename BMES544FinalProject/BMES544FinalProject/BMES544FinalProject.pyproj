@@ -31,6 +31,7 @@
     <Content Include="data\selection2.fastq" />
     <Content Include="data\selection3.fastq" />
     <Content Include="data\selection4.fastq" />
+    <Content Include="data\outfile.txt" />
     <Content Include="src\ASM_CONFIG.yml" />
   </ItemGroup>
   <ItemGroup>
