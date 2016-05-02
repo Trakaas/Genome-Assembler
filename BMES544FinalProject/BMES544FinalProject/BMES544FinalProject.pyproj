@@ -22,11 +22,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="BMES544FinalProject.py" />
     <Compile Include="src\BMES544FinalProject.py" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="ASM_CONFIG.yml" />
     <Content Include="data\frag_1.fastq" />
     <Content Include="data\frag_2.fastq" />
     <Content Include="data\selection1.fastq" />
