@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>877a6e0e-ebd2-4b14-bacb-f928e608467b</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>BMES544FinalProject.py</StartupFile>
+    <StartupFile>src\BMES544FinalProject.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,10 +22,20 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="BMES544FinalProject.py" />
+    <Compile Include="src\BMES544FinalProject.py" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="ASM_CONFIG.yml" />
+    <Content Include="data\frag_1.fastq" />
+    <Content Include="data\frag_2.fastq" />
+    <Content Include="data\selection1.fastq" />
+    <Content Include="data\selection2.fastq" />
+    <Content Include="data\selection3.fastq" />
+    <Content Include="data\selection4.fastq" />
+    <Content Include="src\ASM_CONFIG.yml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="data\" />
+    <Folder Include="src\" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
