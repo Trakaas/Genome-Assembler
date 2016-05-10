@@ -17,11 +17,26 @@ def config():
 
     return cfg
 
+cfg_items=config()
+data_loc=cfg_items['initial']['fastq_dir']
+start_text='\n'+cfg_items['initial']['start_text']
+
+def trim_by_qual(sequences):
+    quality_reads = (record for record in sequences \
+              if min(rec.letter_annotations["phred_quality"]) >= 30)
+    
+    print("Saved %i reads" % count)
+    return quality_reads
+def trim_by_N(sequences):
+    return 0
+def trim_by_complexity(sequences):
+    return 0
+
 def main(cfg_items, flags):
     flags_list=flags.strip('').split('-')
     
-    start_text='\n'+cfg_items['initial']['start_text']
-    data_loc=cfg_items['initial']['fastq_dir']
+#    start_text='\n'+cfg_items['initial']['start_text']
+#    data_loc=cfg_items['initial']['fastq_dir']
     print(textwrap.fill(start_text.strip(), 100))
     print('\nYou\'ve chosen -->', data_loc ,'<-- as your assembly library.')
     print('You flagged -->', [item for item in flags_list if item != ''], '<-- as your CLI options.')
