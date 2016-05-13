@@ -24,7 +24,7 @@ def config():
 cfg_items=config()
 data_loc=cfg_items['initial']['fastq_dir']
 start_text='\n'+cfg_items['initial']['start_text']
-
+overlap=cfg_items['settings']['overlap_length']
 
 def trim_by_qual(sequences):
     quality_reads = [record for record in sequences \
@@ -32,7 +32,7 @@ def trim_by_qual(sequences):
     for record in quality_reads:
         record.letter_annotations={}
     count = SeqIO.write(quality_reads, data_loc+"good_quality.fasta", "fasta")
-    print("\n\tSaved %i reads after removing reads below an average quality of 20 and stripped extraneous quality info." % count)
+    print("\n\t\tSaved %i reads after removing reads below a mean quality of 20 and stripped extraneous quality info." % count)
     return (record for record in quality_reads)
 
 
@@ -47,7 +47,7 @@ def trim_by_N(sequences):
             N_reads.append(record)
 
     count = SeqIO.write(N_reads, data_loc+"N_reads.fasta", "fasta")
-    print("Saved %i reads after filtering out N-rich reads and stripping poly-N segments from start and end of reads." % count)
+    print("\n\tSaved %i reads after filtering out N-rich reads and stripping poly-N segments from start and end of reads." % count)
     return (record for record in N_reads)
 
 def trim_by_complexity(sequences):
@@ -63,17 +63,49 @@ def trim_by_complexity(sequences):
         comp_red = re.sub('T{5,}','TTT',comp_red)
         record.seq=comp_red
         Comp.append(record)
-    print('Saved %i reads after removing homopolymers and masking simple repeats.' % len(Comp))
+    print('\nSaved %i reads after removing homopolymers and masking simple repeats.' % len(Comp))
     return (record for record in Comp)
 
 
 
-def main(cfg_items, flags):
+def main(flags):
     flags_list=flags.strip('').split('-')
     
     print(textwrap.fill(start_text.strip(), 100))
     print('\nYou\'ve chosen -->', data_loc ,'<-- as your assembly library.')
-    print('You flagged -->', [item for item in flags_list if item != ''], '<-- as your CLI options.')
+    if len(flags_list)>1:
+        sep_flags=[item for item in flags_list if item != '']
+        for item in sep_flags:
+            pair=item.strip().split(' ')
+            if len(pair) > 2:
+                print('\n***Format specification for flag was wrong. Please adhere to one flag one value. Dropping extra values.***')
+            if pair[0]=='help':
+                sys.exit('Help text here later. List of flags. Modifiable settings possible.')
+            if pair[0]=='o':
+                try:
+                    overlap=int(pair[1])
+                    print('\n^You flagged an overlap specification: %i' % overlap)
+                    if overlap > 50:
+                        print('\n\t***NOTE: This overlap is very unlikely to occur. Alignment will be very rare.***')
+                    
+                except ValueError:
+                    pair[1]=input('\nYou input an invalid value for minimum overlap. Would you like to re-input or use default?\n \
+                            Type default or a number < size of average read from your data. ~-> ')
+                    if pair[1]=='default':
+                        overlap=5
+                        pass
+                    else:
+                        try:
+                            overlap=int(pair[1])
+                            print('\n^You flagged an overlap specification: %i' % overlap)
+                            if overlap > 50:
+                                print('\n\t***NOTE: This overlap is very unlikely to occur. Alignment will be very rare.***')
+                        except ValueError:
+                            sys.exit('\nTwo incorrect inputs. Not bothering to make more error handling. Please run from the \
+beginning with correct flags.')
+
+    else:
+        print('You didn\'t flag anything so default settings will be used.')
     files_to_parse=input('\nInput file names with extensions. Seperate files with commas. ~> ') # error handling later
 
     # Ensure files are valid data files, if not send to invalid file list and save for verbose output
@@ -98,8 +130,9 @@ def main(cfg_items, flags):
     qual_r=trim_by_qual(sequence)
     trimmed_N=trim_by_N(qual_r)
     qual_r=trim_by_complexity(trimmed_N)
-
-    sys.exit('Program finished. Check the data folder for output files.')
+# Start of assembly
+    sequence=list(qual_r)
+    sys.exit('\n\tProgram finished. Check the data folder for output files.')
 
 
 
@@ -108,7 +141,7 @@ def main(cfg_items, flags):
 
 
 if __name__ == '__main__':
-    cfg_items=config()
+#   cfg_items=config()
     flags=''
     if len(sys.argv)>=2: flags=' '.join(sys.argv[1:]) #error handling later
-    main(cfg_items,flags)
+    main(flags)
