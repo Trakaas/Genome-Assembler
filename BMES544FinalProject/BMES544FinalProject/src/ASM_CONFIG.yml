@@ -1,0 +1,9 @@
+initial:
+    cur_dir:
+    fastq_dir: ../data/
+    start_text: Welcome to Sek's Greedy Genome Assembler! This is a greedy assembler for short-read data that receives input from fastq files and outputs a single assembled genome. The program will prompt you for an input file name and assumes that the file is either in the directory this script is in or in the user's Documents folder. Alternate locations can be defined in the ASM_CONFIG.yaml file. The YAML file MUST be located in the same directory that this script resides or the script will assume everything is in the same directory.
+settings:
+    overlap_length: 5
+    cutoff: 1000
+    al_type: g
+
