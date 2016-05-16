@@ -24,7 +24,7 @@ def config():
 cfg_items=config()
 data_loc=cfg_items['initial']['fastq_dir']
 start_text='\n'+cfg_items['initial']['start_text']
-overlap=cfg_items['settings']['overlap_length']
+min_overlap=cfg_items['settings']['overlap_length']
 
 def trim_by_qual(sequences):
     quality_reads = [record for record in sequences \
@@ -68,9 +68,12 @@ def trim_by_complexity(sequences):
 
 
 
-def main(flags):
+def main(flags,cfg_items):
     flags_list=flags.strip('').split('-')
-    
+
+    min_overlap=cfg_items['settings']['overlap_length']
+
+    print(min_overlap)    
     print(textwrap.fill(start_text.strip(), 100))
     print('\nYou\'ve chosen -->', data_loc ,'<-- as your assembly library.')
     if len(flags_list)>1:
@@ -83,22 +86,22 @@ def main(flags):
                 sys.exit('Help text here later. List of flags. Modifiable settings possible.')
             if pair[0]=='o':
                 try:
-                    overlap=int(pair[1])
-                    print('\n^You flagged an overlap specification: %i' % overlap)
-                    if overlap > 50:
+                    min_overlap=int(pair[1])
+                    print('\n^You flagged an overlap specification: %i' % min_overlap)
+                    if min_overlap > 50:
                         print('\n\t***NOTE: This overlap is very unlikely to occur. Alignment will be very rare.***')
                     
                 except ValueError:
                     pair[1]=input('\nYou input an invalid value for minimum overlap. Would you like to re-input or use default?\n \
                             Type default or a number < size of average read from your data. ~-> ')
                     if pair[1]=='default':
-                        overlap=5
+                        min_overlap=5
                         pass
                     else:
                         try:
-                            overlap=int(pair[1])
-                            print('\n^You flagged an overlap specification: %i' % overlap)
-                            if overlap > 50:
+                            min_overlap=int(pair[1])
+                            print('\n^You flagged an overlap specification: %i' % min_overlap)
+                            if min_overlap > 50:
                                 print('\n\t***NOTE: This overlap is very unlikely to occur. Alignment will be very rare.***')
                         except ValueError:
                             sys.exit('\nTwo incorrect inputs. Not bothering to make more error handling. Please run from the \
@@ -132,6 +135,76 @@ beginning with correct flags.')
     qual_r=trim_by_complexity(trimmed_N)
 # Start of assembly
     sequence=list(qual_r)
+    possible=True
+    merges=0
+    contained=[]
+    iteration_cutoff=False
+    read_index=0
+# outline
+    # take a read search sequence list for overlap
+    while possible:
+        read=sequence[read_index]
+        start_overlap_region=read[:min_overlap] # overlap region is at the beginning of the read
+        end_overlap_region=read[-min_overlap:] # new overlap region is at the end of the read
+#        print('Current index: ',read_index)
+        if merges > 0: # if merges have occurred check if currently selected read is contained in [-merges:]
+            for other_reads in sequence[-merges:]:
+                if str(read.seq) in other_reads.seq:
+                    contained.append(read) # if contained add it to contained list and delete from master list
+                    sequence.pop(read_index)
+                    read_index = 0
+                    print('contained read %s' % str(read.seq))
+            # decide what to do with this if I have time, probably used after contig alignment
+                    continue
+
+        for other_loc,other_reads in enumerate(sequence[read_index:]): # check begin-end (does the read overlap on the end of the other reads)
+            if str(start_overlap_region.seq) in other_reads[-min_overlap:].seq:
+                print('begin-end')
+                new_read=other_reads[:-min_overlap]+read
+                sequence.append(new_read) # append to list delete original sequences
+                sequence.pop(read_index)
+                sequence.pop(read_index+other_loc)
+                read_index = 0 # reset the index, since there might be new overlaps or contained reads
+                merges += 1 # merges increase by 1
+                break # exit back to while loop and begin again
+
+            if str(end_overlap_region.seq) in other_reads[:min_overlap].seq:
+                print('end-begin')
+                new_read=read+other_reads[:-min_overlap]
+                sequence.append(new_read)# append to list delete original sequences
+                sequence.pop(read_index)
+                sequence.pop(read_index+other_loc)
+                read_index = 0 # reset the index, since there might be new overlaps or contained reads
+                merges += 1 # merges increase by 1
+                break # exit back to while loop and begin again
+        # didn't find begin-end
+
+#            overlap_region=read[-min_overlap:] # new overlap region is at the end of the read
+#        for other_reads in sequence[read_index:]: # check end-begin (does the read overlap on the beginning of the other reads)
+#            if str(end_overlap_region.seq) in other_reads[:min_overlap].seq:
+#                print('end-begin')
+#                new_read=read+other_reads[:-min_overlap]
+#                sequence.append(new_read)# append to list delete original sequences
+#                sequence.pop(read_index)
+#                read_index = 0 # reset the index, since there might be new overlaps or contained reads
+#                merges += 1 # merges increase by 1
+#                break # exit back to while loop and begin again
+
+        read_index+=1 # special condition, no overlap using the the current index. increment up
+
+        if read_index==len(sequence)-2: # eventually, no more reads to compare so end the whole thing and start aligning contigs
+            possible=False
+            
+        
+    # restart loop
+
+    print(len(sequence))
+    for reads in sequence:
+        print(str(reads.seq),'\n')
+        reads.id={}
+    SeqIO.write([record for record in sequence], data_loc+"contigs.fasta", "fasta")
+
+
     sys.exit('\n\tProgram finished. Check the data folder for output files.')
 
 
@@ -144,4 +217,6 @@ if __name__ == '__main__':
 #   cfg_items=config()
     flags=''
     if len(sys.argv)>=2: flags=' '.join(sys.argv[1:]) #error handling later
-    main(flags)
+
+    cfg_items=config()
+    main(flags,cfg_items)
