@@ -1,4 +1,4 @@
-#!python3
+#! /usr/bin/env python3.5
 
 from Bio import SeqIO
 from Bio.Seq import Seq
@@ -109,7 +109,7 @@ beginning with correct flags.')
     else:
         print('You didn\'t flag anything so default settings will be used.')
     files_to_parse=input('\nInput file names with extensions. Seperate files with commas. ~> ') # error handling later
-
+#    files_to_parse='custom.fastq'
     # Ensure files are valid data files, if not send to invalid file list and save for verbose output
     file_list=files_to_parse.split(',')
     file_list=[item.strip(' ') for item in file_list]
@@ -152,13 +152,11 @@ beginning with correct flags.')
                     contained.append(read) # if contained add it to contained list and delete from master list
                     sequence.pop(read_index)
                     read_index = 0
-                    print('contained read %s' % str(read.seq))
             # decide what to do with this if I have time, probably used after contig alignment
                     continue
 
         for other_loc,other_reads in enumerate(sequence[read_index:]): # check begin-end (does the read overlap on the end of the other reads)
             if str(start_overlap_region.seq) in other_reads[-min_overlap:].seq:
-                print('begin-end')
                 new_read=other_reads[:-min_overlap]+read
                 sequence.append(new_read) # append to list delete original sequences
                 sequence.pop(read_index)
@@ -168,7 +166,6 @@ beginning with correct flags.')
                 break # exit back to while loop and begin again
 
             if str(end_overlap_region.seq) in other_reads[:min_overlap].seq:
-                print('end-begin')
                 new_read=read+other_reads[:-min_overlap]
                 sequence.append(new_read)# append to list delete original sequences
                 sequence.pop(read_index)
