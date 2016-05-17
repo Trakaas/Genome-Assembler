@@ -67,6 +67,10 @@ def trim_by_complexity(sequences):
     print('\nSaved %i reads after removing homopolymers and masking simple repeats.' % len(Comp))
     return (record for record in Comp)
 
+def rehash(sequence,start_dict,end_dict):
+
+    return start_dict,end_dict
+
 def main(flags,cfg_items):
     flags_list=flags.strip('').split('-')
 
@@ -133,6 +137,39 @@ beginning with correct flags.')
     comp_s=trim_by_complexity(trimmed_N)
 # Start of assembly
     sequence=[item for item in comp_s]
+
+# making my hash table of overlaps
+    start_hashes={}
+    end_hashes={}
+    for read in sequence:
+        start_overlap_region=read.seq[:min_overlap] # overlap region is at the beginning of the read
+        end_overlap_region=read.seq[-min_overlap:] # new overlap region is at the end of the read
+
+        if start_overlap_region not in start_hashes:
+            start_hashes[start_overlap_region]={end_overlap_region:read.seq}
+        else:
+            start_hashes[start_overlap_region].update({end_overlap_region:read.seq})
+        if end_overlap_region not in end_hashes:
+            end_hashes[end_overlap_region]={end_overlap_region:read.seq}
+        else:
+            end_hashes[end_overlap_region].update({end_overlap_region:read.seq})
+
+#    print('num starts: {}\nnum ends: {}'.format(len(start_hashes), len(end_hashes)))
+#    print('starts')
+#    count=0
+#    for key, value in start_hashes.items():
+#        if count==5:
+#            break
+#        print(key,value)
+#        count+=1
+#    count=0
+#    print('ends')
+#    for key, value in end_hashes.items():
+#        if count==5:
+#            break
+#        print(key,value)
+#        count+=1
+
     total_len=len(sequence)
     possible=True
     merges=0
@@ -146,9 +183,28 @@ beginning with correct flags.')
 # outline
     # take a read search sequence list for overlap
     while possible:
-        read=sequence[read_index]
-        start_overlap_region=read[:min_overlap] # overlap region is at the beginning of the read
-        end_overlap_region=read[-min_overlap:] # new overlap region is at the end of the read
+        read=sequence[-1] # get the last read
+        start_overlap_region=read[:min_overlap] # get the starting overlap region
+        end_overlap_region=read[-min_overlap:] # get the ending overlap region
+        # lookup start in the end hash table
+            # if not in the end hash table stage for removal
+            # else it has a match check the table for a sequence to merge and its index
+                # note index is overlap at end of sequence
+                # delete both sequence in start (use end index), delete sequence in end (use start index)
+                # merge in original sequence
+                # delete last item in original list
+                # rehash the new sequence
+                    # note the sequence is kept in memory and passed as a string
+                # restart loop for next value
+        # lookup end in start hash table
+            # if not in the start hash table commit orphan deletion
+                # 
+        
+
+#        if:
+#        else:
+#            sequence=[sequence.pop()]+sequence
+
         cur_per = (total_len-len(sequence))/total_len
         term_size=shutil.get_terminal_size()
         if last_per != cur_per:
