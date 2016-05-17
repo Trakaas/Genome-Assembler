@@ -11,6 +11,7 @@ import random
 import re
 import numpy as np
 from itertools import product
+import shutil
 
 def config():
     with open("ASM_CONFIG.yml", 'r') as ymlfile:
@@ -65,8 +66,6 @@ def trim_by_complexity(sequences):
         Comp.append(record)
     print('\nSaved %i reads after removing homopolymers and masking simple repeats.' % len(Comp))
     return (record for record in Comp)
-
-
 
 def main(flags,cfg_items):
     flags_list=flags.strip('').split('-')
@@ -134,17 +133,28 @@ beginning with correct flags.')
     comp_s=trim_by_complexity(trimmed_N)
 # Start of assembly
     sequence=[item for item in comp_s]
+    total_len=len(sequence)
     possible=True
     merges=0
     contained=[]
     iteration_cutoff=False
     read_index=0
+    last_per = 0.0
+    term_size=shutil.get_terminal_size()
+    text='  {:.2%} done.  '.format(last_per)
+    print(text.center(term_size[0],'~'),end='\r')
 # outline
     # take a read search sequence list for overlap
     while possible:
         read=sequence[read_index]
         start_overlap_region=read[:min_overlap] # overlap region is at the beginning of the read
         end_overlap_region=read[-min_overlap:] # new overlap region is at the end of the read
+        cur_per = (total_len-len(sequence))/total_len
+        term_size=shutil.get_terminal_size()
+        if last_per != cur_per:
+            text='  {:.2%} done.  '.format(cur_per)
+            print(text.center(term_size[0],'~'),end='\r')
+            last_per = cur_per
 #        print('Current index: ',read_index)
         if merges > 0: # if merges have occurred check if currently selected read is contained in [-merges:]
             for other_reads in sequence[-merges:]:
@@ -175,26 +185,14 @@ beginning with correct flags.')
                 break # exit back to while loop and begin again
         # didn't find begin-end
 
-#            overlap_region=read[-min_overlap:] # new overlap region is at the end of the read
-#        for other_reads in sequence[read_index:]: # check end-begin (does the read overlap on the beginning of the other reads)
-#            if str(end_overlap_region.seq) in other_reads[:min_overlap].seq:
-#                print('end-begin')
-#                new_read=read+other_reads[:-min_overlap]
-#                sequence.append(new_read)# append to list delete original sequences
-#                sequence.pop(read_index)
-#                read_index = 0 # reset the index, since there might be new overlaps or contained reads
-#                merges += 1 # merges increase by 1
-#                break # exit back to while loop and begin again
-
         read_index+=1 # special condition, no overlap using the the current index. increment up
 
         if read_index==len(sequence)-2: # eventually, no more reads to compare so end the whole thing and start aligning contigs
             possible=False
-            
-        
+            text='  Assembly done.  '.format(last_per)
+            print(text.center(term_size[0],'!'))
     # restart loop
 
-    print(len(sequence))
     for the_seq in sequence: # cleaning up for output, sequence records are strings and not SeqRecords
         the_seq.seq=Seq(the_seq.seq,IUPAC.ambiguous_dna)
     
