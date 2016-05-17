@@ -8,8 +8,8 @@
     <StartupFile>src\BMES544FinalProject.py</StartupFile>
     <SearchPath>
     </SearchPath>
-    <WorkingDirectory>.</WorkingDirectory>
-    <OutputPath>.</OutputPath>
+    <WorkingDirectory>./src/</WorkingDirectory>
+    <OutputPath>./data/</OutputPath>
     <Name>BMES544FinalProject</Name>
     <RootNamespace>BMES544FinalProject</RootNamespace>
   </PropertyGroup>
@@ -25,6 +25,7 @@
     <Compile Include="src\BMES544FinalProject.py" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="data\contigs.fasta" />
     <Content Include="data\frag_1.fastq" />
     <Content Include="data\frag_2.fastq" />
     <Content Include="data\selection1.fastq" />

@@ -73,7 +73,6 @@ def main(flags,cfg_items):
 
     min_overlap=cfg_items['settings']['overlap_length']
 
-    print(min_overlap)    
     print(textwrap.fill(start_text.strip(), 100))
     print('\nYou\'ve chosen -->', data_loc ,'<-- as your assembly library.')
     if len(flags_list)>1:
@@ -132,9 +131,9 @@ beginning with correct flags.')
     print('\n\n\t\tParsing done! There are %i reads in the genome.' % len(sequence))
     qual_r=trim_by_qual(sequence)
     trimmed_N=trim_by_N(qual_r)
-    qual_r=trim_by_complexity(trimmed_N)
+    comp_s=trim_by_complexity(trimmed_N)
 # Start of assembly
-    sequence=list(qual_r)
+    sequence=[item for item in comp_s]
     possible=True
     merges=0
     contained=[]
@@ -199,10 +198,10 @@ beginning with correct flags.')
     # restart loop
 
     print(len(sequence))
-    for reads in sequence:
-        print(str(reads.seq),'\n')
-        reads.id={}
-    SeqIO.write([record for record in sequence], data_loc+"contigs.fasta", "fasta")
+    for the_seq in sequence: # cleaning up for output, sequence records are strings and not SeqRecords
+        the_seq.seq=Seq(the_seq.seq,IUPAC.ambiguous_dna)
+    
+    SeqIO.write(sequence, data_loc+"contigs.fasta",'fasta')
 
 
     sys.exit('\n\tProgram finished. Check the data folder for output files.')
