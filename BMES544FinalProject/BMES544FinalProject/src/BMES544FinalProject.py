@@ -142,17 +142,17 @@ beginning with correct flags.')
     start_hashes={}
     end_hashes={}
     for read in sequence:
-        start_overlap_region=read.seq[:min_overlap] # overlap region is at the beginning of the read
-        end_overlap_region=read.seq[-min_overlap:] # new overlap region is at the end of the read
+        start_overlap_region=str(read.seq[:min_overlap]) # overlap region is at the beginning of the read
+        end_overlap_region=str(read.seq[-min_overlap:]) # new overlap region is at the end of the read
 
         if start_overlap_region not in start_hashes:
-            start_hashes[start_overlap_region]={end_overlap_region:read.seq}
+            start_hashes[start_overlap_region]={end_overlap_region:str(read.seq)}
         else:
-            start_hashes[start_overlap_region].update({end_overlap_region:read.seq})
+            start_hashes[start_overlap_region].update({end_overlap_region:str(read.seq)})
         if end_overlap_region not in end_hashes:
-            end_hashes[end_overlap_region]={end_overlap_region:read.seq}
+            end_hashes[end_overlap_region]={end_overlap_region:str(read.seq)}
         else:
-            end_hashes[end_overlap_region].update({end_overlap_region:read.seq})
+            end_hashes[end_overlap_region].update({end_overlap_region:str(read.seq)})
 
 #    print('num starts: {}\nnum ends: {}'.format(len(start_hashes), len(end_hashes)))
 #    print('starts')
@@ -183,13 +183,33 @@ beginning with correct flags.')
 # outline
     # take a read search sequence list for overlap
     while possible:
-        read=sequence[-1] # get the last read
-        start_overlap_region=read[:min_overlap] # get the starting overlap region
-        end_overlap_region=read[-min_overlap:] # get the ending overlap region
-        # lookup start in the end hash table
-            # if not in the end hash table stage for removal
-            # else it has a match check the table for a sequence to merge and its index
-                # note index is overlap at end of sequence
+        read=sequence[-1*read_index] # get the last read
+        start_overlap_region=str(read.seq[:min_overlap]) # get the starting overlap region
+        end_overlap_region=str(read.seq[-min_overlap:]) # get the ending overlap region
+        
+        if start_overlap_region in end_hashes:
+            o_read=next(iter(end_hashes[start_overlap_region].values()))
+#            print('\n',o_read)
+            print('before s del:',start_hashes[start_overlap_region])
+            print(start_hashes[start_overlap_region].pop(end_overlap_region))
+            print('after s del:',start_hashes[start_overlap_region])
+            print('\n\nbefore e del:',end_hashes[end_overlap_region])
+            print(end_hashes[end_overlap_region].pop(start_overlap_region))
+            print('after e del:',end_hashes[end_overlap_region])
+            new_read=o_read[:-min_overlap]+read
+#            print('\n\nstart in end: ',new_read.seq)
+            sequence.pop()
+            continue
+        else:
+            stage = read
+
+        if end_overlap_region in start_hashes:
+            o_read=next(iter(start_hashes[end_overlap_region].values()))
+#            print('\n',o_read)
+            new_read=read+o_read[:-min_overlap]
+#            print('\n\nend in start: ',str(new_read.seq))
+#        elif stage!='':
+            # delete from start and end
                 # delete both sequence in start (use end index), delete sequence in end (use start index)
                 # merge in original sequence
                 # delete last item in original list
@@ -198,47 +218,54 @@ beginning with correct flags.')
                 # restart loop for next value
         # lookup end in start hash table
             # if not in the start hash table commit orphan deletion
-                # 
+            # else it has a match check the table for a sequence to merge and its index
+                # note index is overlap at end of sequence
+                # delete both sequence in start (use end index), delete sequence in end (use start index)
+                # merge in original sequence
+                # delete last item in original list
+                # rehash the new sequence
+                    # note the sequence is kept in memory and passed as a string
+                # restart loop for next value
         
 
 #        if:
 #        else:
 #            sequence=[sequence.pop()]+sequence
 
-        cur_per = (total_len-len(sequence))/total_len
-        term_size=shutil.get_terminal_size()
-        if last_per != cur_per:
-            text='  {:.2%} done.  '.format(cur_per)
-            print(text.center(term_size[0],'~'),end='\r')
-            last_per = cur_per
+#        cur_per = (total_len-len(sequence))/total_len
+#        term_size=shutil.get_terminal_size()
+#        if last_per != cur_per:
+#            text='  {:.2%} done.  '.format(cur_per)
+#            print(text.center(term_size[0],'~'),end='\r')
+#            last_per = cur_per
 #        print('Current index: ',read_index)
-        if merges > 0: # if merges have occurred check if currently selected read is contained in [-merges:]
-            for other_reads in sequence[-merges:]:
-                if str(read.seq) in other_reads.seq:
-                    contained.append(read) # if contained add it to contained list and delete from master list
-                    sequence.pop(read_index)
-                    read_index = 0
-            # decide what to do with this if I have time, probably used after contig alignment
-                    continue
-
-        for other_loc,other_reads in enumerate(sequence[read_index:]): # check begin-end (does the read overlap on the end of the other reads)
-            if str(start_overlap_region.seq) in other_reads[-min_overlap:].seq:
-                new_read=other_reads[:-min_overlap]+read
-                sequence.append(new_read) # append to list delete original sequences
-                sequence.pop(read_index)
-                sequence.pop(read_index+other_loc)
-                read_index = 0 # reset the index, since there might be new overlaps or contained reads
-                merges += 1 # merges increase by 1
-                break # exit back to while loop and begin again
-
-            if str(end_overlap_region.seq) in other_reads[:min_overlap].seq:
-                new_read=read+other_reads[:-min_overlap]
-                sequence.append(new_read)# append to list delete original sequences
-                sequence.pop(read_index)
-                sequence.pop(read_index+other_loc)
-                read_index = 0 # reset the index, since there might be new overlaps or contained reads
-                merges += 1 # merges increase by 1
-                break # exit back to while loop and begin again
+#        if merges > 0: # if merges have occurred check if currently selected read is contained in [-merges:]
+#            for other_reads in sequence[-merges:]:
+#                if str(read.seq) in other_reads.seq:
+#                    contained.append(read) # if contained add it to contained list and delete from master list
+#                    sequence.pop(read_index)
+#                    read_index = 0
+#            # decide what to do with this if I have time, probably used after contig alignment
+#                    continue
+#
+#        for other_loc,other_reads in enumerate(sequence[read_index:]): # check begin-end (does the read overlap on the end of the other reads)
+#            if str(start_overlap_region.seq) in other_reads[-min_overlap:].seq:
+#                new_read=other_reads[:-min_overlap]+read
+#                sequence.append(new_read) # append to list delete original sequences
+#                sequence.pop(read_index)
+#                sequence.pop(read_index+other_loc)
+#                read_index = 0 # reset the index, since there might be new overlaps or contained reads
+#                merges += 1 # merges increase by 1
+#                break # exit back to while loop and begin again
+#
+#            if str(end_overlap_region.seq) in other_reads[:min_overlap].seq:
+#                new_read=read+other_reads[:-min_overlap]
+#                sequence.append(new_read)# append to list delete original sequences
+#                sequence.pop(read_index)
+#                sequence.pop(read_index+other_loc)
+#                read_index = 0 # reset the index, since there might be new overlaps or contained reads
+#                merges += 1 # merges increase by 1
+#                break # exit back to while loop and begin again
         # didn't find begin-end
 
         read_index+=1 # special condition, no overlap using the the current index. increment up
