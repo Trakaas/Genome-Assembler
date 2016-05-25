@@ -2,6 +2,7 @@
 
 from Bio import SeqIO
 from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 import os
 import textwrap
 import yaml
@@ -73,8 +74,9 @@ def rehash(sequence,start_dict,end_dict):
 
 def main(flags,cfg_items):
     flags_list=flags.strip('').split('-')
-
+    term_size=shutil.get_terminal_size()
     min_overlap=cfg_items['settings']['overlap_length']
+    mode=cfg_items['settings']['al_type']
 
     print(textwrap.fill(start_text.strip(), 100))
     print('\nYou\'ve chosen -->', data_loc ,'<-- as your assembly library.')
@@ -82,14 +84,22 @@ def main(flags,cfg_items):
         sep_flags=[item for item in flags_list if item != '']
         for item in sep_flags:
             pair=item.strip().split(' ')
+            if pair[0]=='h' or pair[0]=='hash':
+                mode='h'
+                print(('  You flagged hash table mode.   ').ljust(term_size[0],'<'))
+                if len(pair) > 1:
+                    print('\n***Format specification for mode was wrong. Please adhere to one flag for mode. Dropping extra values.***')
+
             if len(pair) > 2:
                 print('\n***Format specification for flag was wrong. Please adhere to one flag one value. Dropping extra values.***')
+
             if pair[0]=='help':
                 sys.exit('Help text here later. List of flags. Modifiable settings possible.')
+
             if pair[0]=='o':
                 try:
                     min_overlap=int(pair[1])
-                    print('\n^You flagged an overlap specification: %i' % min_overlap)
+                    print(('  You flagged an overlap specification: %i   ' % min_overlap).ljust(term_size[0],'<'))
                     if min_overlap > 50:
                         print('\n\t***NOTE: This overlap is very unlikely to occur. Alignment will be very rare.***')
                     
@@ -102,7 +112,7 @@ def main(flags,cfg_items):
                     else:
                         try:
                             min_overlap=int(pair[1])
-                            print('\n^You flagged an overlap specification: %i' % min_overlap)
+                            print(('  You flagged an overlap specification: %i   ' % min_overlap).ljust(term_size[0],'<'))
                             if min_overlap > 50:
                                 print('\n\t***NOTE: This overlap is very unlikely to occur. Alignment will be very rare.***')
                         except ValueError:
@@ -111,6 +121,9 @@ beginning with correct flags.')
 
     else:
         print('You didn\'t flag anything so default settings will be used.')
+
+
+# start file input
     files_to_parse=input('\nInput file names with extensions. Seperate files with commas. ~> ') # error handling later
 #    files_to_parse='custom.fastq'
     # Ensure files are valid data files, if not send to invalid file list and save for verbose output
@@ -136,154 +149,140 @@ beginning with correct flags.')
     trimmed_N=trim_by_N(qual_r)
     comp_s=trim_by_complexity(trimmed_N)
 # Start of assembly
-    sequence=[item for item in comp_s]
+    sequence=[str(item.seq) for item in comp_s]
 
-# making my hash table of overlaps
-    start_hashes={}
-    end_hashes={}
-    for read in sequence:
-        start_overlap_region=str(read.seq[:min_overlap]) # overlap region is at the beginning of the read
-        end_overlap_region=str(read.seq[-min_overlap:]) # new overlap region is at the end of the read
-
-        if start_overlap_region not in start_hashes:
-            start_hashes[start_overlap_region]={end_overlap_region:str(read.seq)}
-        else:
-            start_hashes[start_overlap_region].update({end_overlap_region:str(read.seq)})
-        if end_overlap_region not in end_hashes:
-            end_hashes[end_overlap_region]={end_overlap_region:str(read.seq)}
-        else:
-            end_hashes[end_overlap_region].update({end_overlap_region:str(read.seq)})
-
-#    print('num starts: {}\nnum ends: {}'.format(len(start_hashes), len(end_hashes)))
-#    print('starts')
-#    count=0
-#    for key, value in start_hashes.items():
-#        if count==5:
-#            break
-#        print(key,value)
-#        count+=1
-#    count=0
-#    print('ends')
-#    for key, value in end_hashes.items():
-#        if count==5:
-#            break
-#        print(key,value)
-#        count+=1
 
     total_len=len(sequence)
     possible=True
     merges=0
+    skips=0
     contained=[]
     iteration_cutoff=False
     read_index=0
     last_per = 0.0
     term_size=shutil.get_terminal_size()
     text='  {:.2%} done.  '.format(last_per)
-    print(text.center(term_size[0],'~'),end='\r')
-# outline
-    # take a read search sequence list for overlap
-    while possible:
-        read=sequence[-1*read_index] # get the last read
-        start_overlap_region=str(read.seq[:min_overlap]) # get the starting overlap region
-        end_overlap_region=str(read.seq[-min_overlap:]) # get the ending overlap region
-        
-        if start_overlap_region in end_hashes:
-            o_read=next(iter(end_hashes[start_overlap_region].values()))
-#            print('\n',o_read)
-            print('before s del:',start_hashes[start_overlap_region])
-            print(start_hashes[start_overlap_region].pop(end_overlap_region))
-            print('after s del:',start_hashes[start_overlap_region])
-            print('\n\nbefore e del:',end_hashes[end_overlap_region])
-            print(end_hashes[end_overlap_region].pop(start_overlap_region))
-            print('after e del:',end_hashes[end_overlap_region])
-            new_read=o_read[:-min_overlap]+read
-#            print('\n\nstart in end: ',new_read.seq)
-            sequence.pop()
-            continue
-        else:
-            stage = read
+#    print(text.center(term_size[0],'~'),end='\r')
 
-        if end_overlap_region in start_hashes:
-            o_read=next(iter(start_hashes[end_overlap_region].values()))
-#            print('\n',o_read)
-            new_read=read+o_read[:-min_overlap]
-#            print('\n\nend in start: ',str(new_read.seq))
-#        elif stage!='':
-            # delete from start and end
-                # delete both sequence in start (use end index), delete sequence in end (use start index)
-                # merge in original sequence
-                # delete last item in original list
-                # rehash the new sequence
-                    # note the sequence is kept in memory and passed as a string
-                # restart loop for next value
-        # lookup end in start hash table
-            # if not in the start hash table commit orphan deletion
-            # else it has a match check the table for a sequence to merge and its index
-                # note index is overlap at end of sequence
-                # delete both sequence in start (use end index), delete sequence in end (use start index)
-                # merge in original sequence
-                # delete last item in original list
-                # rehash the new sequence
-                    # note the sequence is kept in memory and passed as a string
-                # restart loop for next value
-        
-
-#        if:
-#        else:
-#            sequence=[sequence.pop()]+sequence
-
-#        cur_per = (total_len-len(sequence))/total_len
-#        term_size=shutil.get_terminal_size()
-#        if last_per != cur_per:
-#            text='  {:.2%} done.  '.format(cur_per)
-#            print(text.center(term_size[0],'~'),end='\r')
-#            last_per = cur_per
-#        print('Current index: ',read_index)
-#        if merges > 0: # if merges have occurred check if currently selected read is contained in [-merges:]
-#            for other_reads in sequence[-merges:]:
-#                if str(read.seq) in other_reads.seq:
-#                    contained.append(read) # if contained add it to contained list and delete from master list
-#                    sequence.pop(read_index)
-#                    read_index = 0
-#            # decide what to do with this if I have time, probably used after contig alignment
-#                    continue
-#
-#        for other_loc,other_reads in enumerate(sequence[read_index:]): # check begin-end (does the read overlap on the end of the other reads)
-#            if str(start_overlap_region.seq) in other_reads[-min_overlap:].seq:
-#                new_read=other_reads[:-min_overlap]+read
-#                sequence.append(new_read) # append to list delete original sequences
-#                sequence.pop(read_index)
-#                sequence.pop(read_index+other_loc)
-#                read_index = 0 # reset the index, since there might be new overlaps or contained reads
-#                merges += 1 # merges increase by 1
-#                break # exit back to while loop and begin again
-#
-#            if str(end_overlap_region.seq) in other_reads[:min_overlap].seq:
-#                new_read=read+other_reads[:-min_overlap]
-#                sequence.append(new_read)# append to list delete original sequences
-#                sequence.pop(read_index)
-#                sequence.pop(read_index+other_loc)
-#                read_index = 0 # reset the index, since there might be new overlaps or contained reads
-#                merges += 1 # merges increase by 1
-#                break # exit back to while loop and begin again
-        # didn't find begin-end
-
-        read_index+=1 # special condition, no overlap using the the current index. increment up
-
-        if read_index==len(sequence)-2: # eventually, no more reads to compare so end the whole thing and start aligning contigs
-            possible=False
-            text='  Assembly done.  '.format(last_per)
-            print(text.center(term_size[0],'!'))
-    # restart loop
-
-    for the_seq in sequence: # cleaning up for output, sequence records are strings and not SeqRecords
-        the_seq.seq=Seq(the_seq.seq,IUPAC.ambiguous_dna)
+    if mode == 'h':
+    # making my hash table of overlaps
+        ov_hashes={}
+        for read in sequence:
+            overlap_region=read[:min_overlap] # overlap region is at the beginning of the read
     
-    SeqIO.write(sequence, data_loc+"contigs.fasta",'fasta')
+            if overlap_region not in ov_hashes:
+                ov_hashes[overlap_region]=[read]
+            else:
+                ov_hashes[overlap_region].append(read)
+        total_len=len(ov_hashes.keys())
+        count=0
+        for current_hash, current_sequences in ov_hashes.items(): # iterate over table and retrieve current bucket
+            possible=True
+            count+=1
+            for current_index, current_read in enumerate(current_sequences):
+                possible = True
+               
+                while possible:
+                    target_hash=current_read[-min_overlap:]
+                    try:
+                        target_sequences=[pos_seq for pos_seq in ov_hashes[target_hash] if pos_seq != current_read] # ensure that target seq is not current seq
+                        if target_sequences == []: # if target bucket empty, next sequence in first bucket
+                            term_size=shutil.get_terminal_size()
+                            possible = False
+                            skips+=1
+                            continue
+                        
+                        other_read=target_sequences[len(target_sequences)-1] # get the last sequence in the hash to merge
+                        new_read=current_read[:-min_overlap] + other_read # merge the current sequence and the target sequence
 
+                        if current_index == len(current_sequences) and ov_hashes[current_hash][current_index-1] in new_read:
+                            ov_hashes[current_hash][current_index-1] = new_read # merge sequences in place inside current bucket
+                        else:
+                            ov_hashes[current_hash][current_index] = new_read
+
+                        try:
+                            ov_hashes[target_hash].pop(ov_hashes[target_hash].index(other_read)) # delete merged sequence from target bucket
+                        except (ValueError,KeyError):
+                            possible=False
+                            continue
+                        merges+=1       
+
+                    except KeyError: # if the end can't be mapped to a hash move to the next sequence
+                        possible = False
+                    
+            cur_per = count/total_len
+            term_size=shutil.get_terminal_size()
+            if last_per != cur_per:
+                text='  {:.2%} done.  '.format(cur_per)
+                print(text.center(term_size[0],'~'),end='\r')
+                last_per = cur_per
+        sequence=[item for key,item in ov_hashes.items()]
+        sequence=[item for sublist in sequence for item in sublist if sublist != [] and item != '' and len(item)>101]
+
+        records = (SeqRecord(Seq(seq, IUPAC.ambiguous_dna), str(index)) for index,seq in enumerate(sequence) )
+        SeqIO.write(records, data_loc+"contigsh.fasta",'fasta')
+
+
+    if mode == 'g':
+        while possible:
+            read=sequence[read_index]
+            start_overlap_region=read[:min_overlap] # overlap region is at the beginning of the read
+            end_overlap_region=read[-min_overlap:] # new overlap region is at the end of the read
+
+            cur_per = (total_len-len(sequence))/total_len
+            term_size=shutil.get_terminal_size()
+            if last_per != cur_per:
+                text='  {:.2%} done.  '.format(cur_per)
+                print(text.center(term_size[0],'~'),end='\r')
+                last_per = cur_per
+
+            if merges > 0: # if merges have occurred check if currently selected read is contained in [-merges:]
+                for other_reads in sequence[-merges:]:
+                    if read in other_reads:
+                        contained.append(read) # if contained add it to contained list and delete from master list
+                        sequence.pop(read_index)
+                        read_index = 0
+                # decide what to do with this if I have time, probably used after contig alignment
+                        continue
+    
+            for other_loc,other_reads in enumerate(sequence[read_index:]): # check begin-end (does the read overlap on the end of the other reads)
+                if start_overlap_region in other_reads[-min_overlap:]:
+                    new_read=other_reads[:-min_overlap]+read
+                    sequence.append(new_read) # append to list delete original sequences
+                    sequence.pop(read_index)
+                    sequence.pop(read_index+other_loc)
+                    read_index = 0 # reset the index, since there might be new overlaps or contained reads
+                    merges += 1 # merges increase by 1
+                    break # exit back to while loop and begin again
+    
+                if end_overlap_region in other_reads[:min_overlap]:
+                    new_read=read+other_reads[:-min_overlap]
+                    sequence.append(new_read)# append to list delete original sequences
+                    sequence.pop(read_index)
+                    sequence.pop(read_index+other_loc)
+                    read_index = 0 # reset the index, since there might be new overlaps or contained reads
+                    merges += 1 # merges increase by 1
+                    break # exit back to while loop and begin again
+            # didn't find begin-end
+    
+            read_index+=1 # special condition, no overlap using the the current index. increment up
+    
+            if read_index==len(sequence)-1: # eventually, no more reads to compare so end the whole thing and start aligning contigs
+                possible=False
+                text='  Assembly done.  '.format(last_per)
+                print(text.center(term_size[0],'!'))
+
+#        for index,the_seq in enumerate(sequence): # cleaning up for output, sequence records are strings and not SeqRecords
+#            seq=Seq(the_seq,IUPAC.ambiguous_dna)
+#            print(type(seq))
+#            the_seq=SeqRecord(Seq(the_seq,IUPAC.ambiguous_dna),str(index))
+        records = (SeqRecord(Seq(seq, IUPAC.ambiguous_dna), str(index)) for index,seq in enumerate(sequence) )
+        SeqIO.write(records, data_loc+"contigsg.fasta",'fasta')
+        # restart loop
+        
+# start statistics here (N50, alignment, coverage) make sure to do comparisons to before and after filtering
 
     sys.exit('\n\tProgram finished. Check the data folder for output files.')
-
 
 
 
