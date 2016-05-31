@@ -162,6 +162,17 @@ def gen_s():
                 break
     return genome_size
 
+def choose_gen(data_loc):
+    choice=input('Do you have a reference genome to align your contigs against(Y/N)? ')
+    if choice in ['y','Yes','Y','yes']:
+        choice=input('What\'s the file name (ensure the genome is a single file)? ' )
+
+        if os.path.isfile(data_loc+choice):
+            gen=SeqIO.read(data_loc+choice,'fasta')
+        else:
+            sys.exit('No valid files. Exiting.')
+    return gen
+
 def main(flags,cfg_items):
     flags_list=flags.strip('').split('-')
     term_size=shutil.get_terminal_size()
@@ -319,6 +330,7 @@ beginning with correct flags.')
             sequence=[item for key,item in ov_hashes.items()]
             sequence=[item for sublist in sequence for item in sublist if sublist != [] and item != '' and len(item)>(1.5*avg_length)]
     
+            sequence.sort(key=lambda s: len(s))
             records = [SeqRecord(Seq(seq, IUPAC.ambiguous_dna), str(index)) for index,seq in enumerate(sequence) ]
             del sequence
             ass_file='o_%i_contigs%s' % (min_overlap, mode)
@@ -378,6 +390,7 @@ beginning with correct flags.')
     #            seq=Seq(the_seq,IUPAC.ambiguous_dna)
     #            print(type(seq))
     #            the_seq=SeqRecord(Seq(the_seq,IUPAC.ambiguous_dna),str(index))
+            sequence.sort(key=lambda s: len(s))
             records = [SeqRecord(Seq(seq, IUPAC.ambiguous_dna), str(index)) for index,seq in enumerate(sequence) if len(seq)>(1.5*avg_length)]
             del sequence
             ass_file='o_%i_contigs%s' % (min_overlap, mode)
@@ -389,17 +402,21 @@ beginning with correct flags.')
         print('\n\n Calculating N50, L50, and starting global alignment of contigs.')
         
         print('There are %i contigs.' % len(records))
-        coverage_stats([str(item.seq) for item in records],'pass')
+        coverage_stats([str(item.seq) for item in records],genome_size)
         records.sort(key=lambda s: len(str(s.seq)))
         N50=0; cur_len=0; L50=0;
+
+        if genome_size=='pass':
+            print('Without a genome size estimate, this is basically useless. Assumming 3mil BP genome.')
+            genome_size=3000000
+
         for ind,seq in enumerate(records):
             cur_len+=len(seq)
             if cur_len>=int(genome_size/2):
-                print('N50: %i' % len(seq))
-                print('L50: %i' % (ind+1))
+                print('N50 (sequence length at 50% genome size): %i' % len(seq))
+                print('L50 (number of sequences to reach 50% genome size): %i' % (ind+1))
                 break
         
-        print('Aligning. This is going to take a while. Get some coffee. Results will be written to a file.')
     # ask if want to assemble, or just get stats
     else:
         genome_size=gen_s()
@@ -407,20 +424,32 @@ beginning with correct flags.')
         print('\n\n Calculating N50, L50, and starting global alignment of contigs.')
         
         print('There are %i contigs.' % len(records))
-        coverage_stats([str(item.seq) for item in records],'pass')
+        coverage_stats([str(item.seq) for item in records],genome_size)
         records.sort(key=lambda s: len(str(s.seq)))
         N50=0; cur_len=0; L50=0;
+
+        if genome_size=='pass':
+            print('Without a genome size estimate, this is basically useless. Assumming 3mil BP genome.')
+            genome_size=3000000
+
         for ind,seq in enumerate(records):
             cur_len+=len(seq)
             if cur_len>=int(genome_size/2):
-                print('N50: %i' % len(seq))
-                print('L50: %i' % (ind+1))
+                print('N50 (sequence length at 1/2 genome size): %i' % len(seq))
+                print('L50 (number of sequences to reach 1/2 genome size): %i' % (ind+1))
                 break
         
-        print('Aligning. This is going to take a while. Get some coffee. Results will be written to a file.')
     
-    # globally align to reference genome, 
-    
+    # locally align to reference genome, free end gap penalties, ambiguous dna
+    score=[]
+    genome_seq=choose_gen(data_loc)
+    print(str(genome_seq.seq[0:10000]))
+    print('Aligning. This is going to take a while. Get some coffee. Results will be written to a file.')
+    alignment = pairwise2.align.localxx(str(genome_seq.seq), str(records[0].seq))
+    print(format_alignment(alignment))
+#    for seq in records[:5000:5]:
+#        alignment = pairwise2.align.localxx(genome_seq.seq, seq.seq)
+#        print(format_alignment(alignment))
     
     
     
