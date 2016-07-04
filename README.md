@@ -5,11 +5,15 @@ The actual code that can be run is a few directories down in /BMES544FinalProjec
 There are two flags that can be used for this assembler:
 
 > -o will specify how much of a nucleotide overlap you want to have between reads
+
 > -g will specify the mode of operation that will prioritize contig length over contig number
+
 > -h will specify the mode of operation that will prioritize contig number over contig length
 
 ## Required libraries:
 
 Python: [Python Software Foundation](https://www.python.org)
+
 Biopython: [Biopython](http://biopython.org/wiki/Download)
+
 PYaml - pip install pyaml
