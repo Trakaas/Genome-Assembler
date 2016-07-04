@@ -1,5 +1,5 @@
 # This is a short-read genome assembler for Python 3.X
-The actual code that can be run is a few directories down in /BMES544FinalProject/BMES544FinalProject/src/ and requires you have Biopython, PYaml, and numpy installed. The whole directyory structure is a little messed up since this was written in VS Community and on a Linux cluster on different occasions. Make sure both the BMES544FinalProject.py script and the ASM\_CONFIG.yaml file are present in the same folder when running.
+The actual code that can be run is a few directories down in /BMES544FinalProject/BMES544FinalProject/src/ and requires you have Biopython, PYaml, and numpy installed. The whole directory structure is a little messed up since this was written in VS Community and on a Linux cluster on different occasions. Make sure both the BMES544FinalProject.py script and the ASM\_CONFIG.yaml file are present in the same folder when running.
 
 ## Usage
 There are two flags that can be used for this assembler:
