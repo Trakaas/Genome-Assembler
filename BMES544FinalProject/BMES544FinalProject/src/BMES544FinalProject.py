@@ -74,8 +74,9 @@ def filtering_s(compact_sequences):
         term_size=shutil.get_terminal_size()
         cur_per = count/len(compact_sequences)
         if last_per != cur_per:
-            p_text='  {:.2%} done.  '.format(cur_per)
-            print(p_text.center(term_size[0],'~'),end='\r')
+            p_text='{:.2%} done.'.format(cur_per)+'\r'
+            print(p_text,end="")
+            sys.stdout.flush()
             last_per = cur_per
         
         if np.mean(record.letter_annotations["phred_quality"]) >= 10:
@@ -119,8 +120,6 @@ def coverage_stats(sequence_list,genome_size_estimate):
     print('\nMean length: %i' % int(mean_length))
     return int(mean_length)
 
-def contig_stats(record):
-    return 0
     
 def gen_s():
     estimate=input('Do you know the estimated genome size for your reads(Y/N)? ')
@@ -157,12 +156,14 @@ def gen_s():
                 print('No information known, coverage stats will be skipped. Only sample features will be displayed.')
                 break
         else:
-            estimate=input('Not a valid input. Enter Y/N if you have information or pass if you don\'t know.')
+            estimate=input('Not a valid input. Enter Y/N if you have information or pass if you don\'t know. ')
             if estimate=='pass':
+                genome_size=estimate
                 break
     return genome_size
 
 def choose_gen(data_loc):
+    gen=''
     choice=input('Do you have a reference genome to align your contigs against(Y/N)? ')
     if choice in ['y','Yes','Y','yes']:
         choice=input('What\'s the file name (ensure the genome is a single file)? ' )
@@ -171,6 +172,8 @@ def choose_gen(data_loc):
             gen=SeqIO.read(data_loc+choice,'fasta')
         else:
             sys.exit('No valid files. Exiting.')
+    else:
+        gen='pass'
     return gen
 
 def main(flags,cfg_items):
@@ -274,7 +277,7 @@ beginning with correct flags.')
         read_index=0
         last_per = 0.0
         term_size=shutil.get_terminal_size()
-        text='  {:.2%} done.  '.format(last_per)
+        text='{:.2%} done.'.format(last_per)
     #    print(text.center(term_size[0],'~'),end='\r')
     
         if mode == 'h':
@@ -324,8 +327,9 @@ beginning with correct flags.')
                 cur_per = count/total_len
                 term_size=shutil.get_terminal_size()
                 if last_per != cur_per:
-                    text='  {:.2%} done.  '.format(cur_per)
-                    print(text.center(term_size[0],'~'),end='\r')
+                    text='{:.2%} done.'.format(cur_per)+'\r'
+                    print(text,end='')
+                    sys.stdout.flush()
                     last_per = cur_per
             sequence=[item for key,item in ov_hashes.items()]
             sequence=[item for sublist in sequence for item in sublist if sublist != [] and item != '' and len(item)>(1.5*avg_length)]
@@ -346,8 +350,9 @@ beginning with correct flags.')
                 cur_per = (total_len-len(sequence))/total_len
                 term_size=shutil.get_terminal_size()
                 if last_per != cur_per:
-                    text='  {:.2%} done.  '.format(cur_per)
-                    print(text.center(term_size[0],'~'),end='\r')
+                    text='{:.2%} done.'.format(cur_per)+'\r'
+                    print(text,end='')
+                    sys.stdout.flush()
                     last_per = cur_per
     
     #            if merges > 0: # if merges have occurred check if currently selected read is contained in [-merges:]
@@ -413,8 +418,8 @@ beginning with correct flags.')
         for ind,seq in enumerate(records):
             cur_len+=len(seq)
             if cur_len>=int(genome_size/2):
-                print('N50 (sequence length at 50% genome size): %i' % len(seq))
-                print('L50 (number of sequences to reach 50% genome size): %i' % (ind+1))
+                print('N50 (sequence length at 1/2 genome size): %i' % len(seq))
+                print('L50 (number of sequences to reach 1/2 genome size): %i' % (ind+1))
                 break
         
     # ask if want to assemble, or just get stats
@@ -443,16 +448,16 @@ beginning with correct flags.')
     # locally align to reference genome, free end gap penalties, ambiguous dna
     score=[]
     genome_seq=choose_gen(data_loc)
-    print(str(genome_seq.seq[0:10000]))
-    print('Aligning. This is going to take a while. Get some coffee. Results will be written to a file.')
-    alignment = pairwise2.align.localxx(str(genome_seq.seq), str(records[0].seq))
-    print(format_alignment(alignment))
+    
+#    print('Aligning. This is going to take a while. Get some coffee. Results will be written to a file.')
+#    alignment = pairwise2.align.localxx(str(genome_seq.seq), str(records[0].seq))
+#    print(format_alignment(alignment))
 #    for seq in records[:5000:5]:
 #        alignment = pairwise2.align.localxx(genome_seq.seq, seq.seq)
 #        print(format_alignment(alignment))
     
     
-    
+    input('Type anything then press enter to exit... ')
     sys.exit('\n\tProgram finished. Check the data folder for output files.')
 
 
